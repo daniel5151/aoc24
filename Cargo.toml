@@ -1,0 +1,18 @@
+[package]
+name = "aoc24"
+version = "0.1.0"
+authors = ["Daniel Prilik <danielprilik@gmail.com>"]
+edition = "2021"
+
+[features]
+default = []
+
+[dependencies]
+itertools = "0.13"
+num-traits = "0.2"
+
+[profile.dev]
+incremental = true
+lto = false
+opt-level = 1
+panic = 'unwind'
