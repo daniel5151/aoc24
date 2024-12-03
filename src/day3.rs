@@ -1,158 +1,83 @@
-// lints that are loud when speedrunning. removed before commit
-#![allow(unused_mut, clippy::let_and_return)]
-
 use crate::prelude::*;
 
 type Answer = usize;
 
-// type Input = Vec<usize>;
-// fn munge_input(input: &str) -> DynResult<Input> {}
+#[derive(Copy, Clone)]
+enum State {
+    None,
 
-pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
-    let input = {
-        let mut input = input.split('\n');
+    D,
+    Do,
+    Don,
+    DonA,
+    DonAt,
+    CloseParen,
 
-        // let init = input.next().unwrap();
+    M,
+    Mu,
+    Mul,
+    MulP(usize),
+    MulPC(usize, usize),
+}
 
-        let input = input
-            .map(|s| -> DynResult<_> {
-                let res = {
-                    // parse
-                    s.to_string()
-                };
-                Ok(res)
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        input
-    };
-
+fn exec(input: &str, always_enabled: bool) -> usize {
     let mut total = 0;
-    for line in input {
-        #[derive(Copy, Clone)]
-        enum State {
-            None,
-            M,
-            Mu,
-            Mul,
-            MulB(usize),
-            MulBC(usize, usize),
-        }
+    let mut enabled = true;
+    let mut candidate_enable = false;
+    let mut state = State::None;
+    for c in input.chars() {
+        state = match (c, state) {
+            ('d', State::None) => State::D,
+            ('o', State::D) => State::Do,
 
-        let mut state = State::None;
-        for c in line.chars() {
-            state = match (c, state) {
-                ('m', State::None) => State::M,
-                ('u', State::M) => State::Mu,
-                ('l', State::Mu) => State::Mul,
-                ('(', State::Mul) => State::MulB(0),
-                ('0'..='9', State::MulB(prev)) => {
-                    State::MulB(prev * 10 + (c as u8 - b'0') as usize)
-                }
-                (',', State::MulB(prev)) => State::MulBC(prev, 0),
-                ('0'..='9', State::MulBC(first, prev)) => {
-                    State::MulBC(first, prev * 10 + (c as u8 - b'0') as usize)
-                }
-                (')', State::MulBC(a, b)) => {
-                    total += a * b;
-                    State::None
-                }
-                _ => State::None,
+            ('(', State::Do) => {
+                candidate_enable = true;
+                State::CloseParen
             }
+
+            ('n', State::Do) => State::Don,
+            ('\'', State::Don) => State::DonA,
+            ('t', State::DonA) => State::DonAt,
+            ('(', State::DonAt) => {
+                candidate_enable = false;
+                State::CloseParen
+            }
+
+            (')', State::CloseParen) => {
+                if !always_enabled {
+                    enabled = candidate_enable;
+                }
+                State::None
+            }
+
+            ('m', State::None) => State::M,
+            ('u', State::M) => State::Mu,
+            ('l', State::Mu) => State::Mul,
+            ('(', State::Mul) => State::MulP(0),
+            ('0'..='9', State::MulP(prev)) => State::MulP(prev * 10 + (c as u8 - b'0') as usize),
+            (',', State::MulP(prev)) => State::MulPC(prev, 0),
+            ('0'..='9', State::MulPC(first, prev)) => {
+                State::MulPC(first, prev * 10 + (c as u8 - b'0') as usize)
+            }
+            (')', State::MulPC(a, b)) => {
+                if enabled {
+                    total += a * b;
+                }
+                State::None
+            }
+            _ => State::None,
         }
     }
-    Ok(total)
+
+    total
+}
+
+pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
+    Ok(exec(input, true))
 }
 
 pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
-    let input = {
-        let mut input = input.split('\n');
-
-        // let init = input.next().unwrap();
-
-        let input = input
-            .map(|s| -> DynResult<_> {
-                let res = {
-                    // parse
-                    s.to_string()
-                };
-                Ok(res)
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        input
-    };
-
-    let mut enabled = true;
-
-    let mut total = 0;
-    for line in input {
-        #[derive(Copy, Clone)]
-        enum State {
-            None,
-
-            D,
-            Do,
-            Don,
-            DonA,
-            DonAt,
-            CloseParen,
-
-            M,
-            Mu,
-            Mul,
-            MulB(usize),
-            MulBC(usize, usize),
-        }
-
-        let mut candidate_enable = false;
-
-        let mut state = State::None;
-        for c in line.chars() {
-            state = match (c, state) {
-                ('d', State::None) => State::D,
-                ('o', State::D) => State::Do,
-
-                ('(', State::Do) => {
-                    candidate_enable = true;
-                    State::CloseParen
-                }
-
-                ('n', State::Do) => State::Don,
-                ('\'', State::Don) => State::DonA,
-                ('t', State::DonA) => State::DonAt,
-                ('(', State::DonAt) => {
-                    candidate_enable = false;
-                    State::CloseParen
-                }
-
-                (')', State::CloseParen) => {
-                    enabled = candidate_enable;
-                    State::None
-                }
-
-                ('m', State::None) => State::M,
-                ('u', State::M) => State::Mu,
-                ('l', State::Mu) => State::Mul,
-                ('(', State::Mul) => State::MulB(0),
-                ('0'..='9', State::MulB(prev)) => {
-                    State::MulB(prev * 10 + (c as u8 - b'0') as usize)
-                }
-                (',', State::MulB(prev)) => State::MulBC(prev, 0),
-                ('0'..='9', State::MulBC(first, prev)) => {
-                    State::MulBC(first, prev * 10 + (c as u8 - b'0') as usize)
-                }
-                (')', State::MulBC(a, b)) => {
-                    if enabled {
-                        total += a * b;
-                    }
-                    State::None
-                }
-                _ => State::None,
-            }
-        }
-    }
-    Ok(total)
+    Ok(exec(input, false))
 }
 
 #[cfg(test)]
