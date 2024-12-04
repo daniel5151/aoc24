@@ -1,6 +1,3 @@
-// lints that are loud when speedrunning. removed before commit
-#![allow(unused_mut, clippy::let_and_return)]
-
 use crate::prelude::*;
 
 type Answer = usize;
@@ -46,7 +43,6 @@ pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
                     }
                 }
                 found += 1;
-                // break;
             }
         }
     }
@@ -64,27 +60,22 @@ pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
                 continue;
             }
 
-            let opposites = [
-                ((-1, -1), (1, 1)),
-                ((1, -1), (-1, 1)),
-                // ((-1, 0), (1, 0)),
-                // ((0, 1), (0, -1)),
-            ];
+            let opposites = [((-1, -1), (1, 1)), ((1, -1), (-1, 1))];
 
             let mut lines = 0;
-            for (c1, c2) in opposites {
+            for ((x1, y1), (x2, y2)) in opposites {
                 let c1 = input
-                    .get((i + c1.0) as usize)
+                    .get((i + x1) as usize)
                     .cloned()
                     .unwrap_or_default()
-                    .get((j + c1.1) as usize)
+                    .get((j + y1) as usize)
                     .cloned()
                     .unwrap_or_default();
                 let c2 = input
-                    .get((i + c2.0) as usize)
+                    .get((i + x2) as usize)
                     .cloned()
                     .unwrap_or_default()
-                    .get((j + c2.1) as usize)
+                    .get((j + y2) as usize)
                     .cloned()
                     .unwrap_or_default();
 
@@ -93,7 +84,7 @@ pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
                 }
             }
 
-            if lines >= 2 {
+            if lines == 2 {
                 found += 1;
             }
         }
