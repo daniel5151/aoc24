@@ -5,41 +5,34 @@ use crate::prelude::*;
 
 type Answer = usize;
 
-// type Input = Vec<usize>;
-// fn munge_input(input: &str) -> DynResult<Input> {}
+type Input = Vec<Vec<u8>>;
+fn munge_input(input: &str) -> DynResult<Input> {
+    Ok(input.split('\n').map(|x| x.as_bytes().to_vec()).collect())
+}
 
 pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
-    let input = {
-        let mut input = input.split('\n');
-
-        // let init = input.next().unwrap();
-
-        let input = input
-            .map(|s| -> DynResult<_> {
-                let res = { s.chars().collect::<Vec<char>>() };
-                Ok(res)
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        input
-    };
+    let input = munge_input(input)?;
 
     let mut found = 0;
     for i in 0..(input.len() as i32) {
         for j in 0..(input[0].len() as i32) {
+            if input[i as usize][j as usize] != b'X' {
+                continue;
+            }
+
             let check_dirs = [
-                [(0, 0), (0, 1), (0, 2), (0, 3)],
-                [(0, 0), (0, -1), (0, -2), (0, -3)],
-                [(0, 0), (1, 0), (2, 0), (3, 0)],
-                [(0, 0), (-1, 0), (-2, 0), (-3, 0)],
-                [(0, 0), (1, 1), (2, 2), (3, 3)],
-                [(0, 0), (-1, -1), (-2, -2), (-3, -3)],
-                [(0, 0), (-1, 1), (-2, 2), (-3, 3)],
-                [(0, 0), (1, -1), (2, -2), (3, -3)],
+                [(0, 1), (0, 2), (0, 3)],
+                [(0, -1), (0, -2), (0, -3)],
+                [(1, 0), (2, 0), (3, 0)],
+                [(-1, 0), (-2, 0), (-3, 0)],
+                [(1, 1), (2, 2), (3, 3)],
+                [(-1, -1), (-2, -2), (-3, -3)],
+                [(-1, 1), (-2, 2), (-3, 3)],
+                [(1, -1), (2, -2), (3, -3)],
             ];
 
             'x: for c in check_dirs {
-                for (&(x, y), c) in c.iter().zip(['X', 'M', 'A', 'S']) {
+                for (&(x, y), c) in c.iter().zip([b'M', b'A', b'S']) {
                     if input
                         .get((i + x) as usize)
                         .cloned()
@@ -62,61 +55,46 @@ pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
 }
 
 pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
-    let input = {
-        let mut input = input.split('\n');
-
-        // let init = input.next().unwrap();
-
-        let input = input
-            .map(|s| -> DynResult<_> {
-                let res = { s.chars().collect::<Vec<char>>() };
-                Ok(res)
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        input
-    };
+    let input = munge_input(input)?;
 
     let mut found = 0;
     for i in 0..(input.len() as i32) {
         for j in 0..(input[0].len() as i32) {
-            if input[i as usize][j as usize] != 'A' {
+            if input[i as usize][j as usize] != b'A' {
                 continue;
             }
 
-            let orients = [
-                [((-1, -1), (1, 1)), ((1, -1), (-1, 1))],
-                [((-1, 0), (1, 0)), ((0, 1), (0, -1))],
+            let opposites = [
+                ((-1, -1), (1, 1)),
+                ((1, -1), (-1, 1)),
+                // ((-1, 0), (1, 0)),
+                // ((0, 1), (0, -1)),
             ];
 
-            for orient in orients {
-                let mut bad = false;
-                for (c1, c2) in orient {
-                    let c1 = input
-                        .get((i + c1.0) as usize)
-                        .cloned()
-                        .unwrap_or_default()
-                        .get((j + c1.1) as usize)
-                        .cloned()
-                        .unwrap_or_default();
-                    let c2 = input
-                        .get((i + c2.0) as usize)
-                        .cloned()
-                        .unwrap_or_default()
-                        .get((j + c2.1) as usize)
-                        .cloned()
-                        .unwrap_or_default();
+            let mut lines = 0;
+            for (c1, c2) in opposites {
+                let c1 = input
+                    .get((i + c1.0) as usize)
+                    .cloned()
+                    .unwrap_or_default()
+                    .get((j + c1.1) as usize)
+                    .cloned()
+                    .unwrap_or_default();
+                let c2 = input
+                    .get((i + c2.0) as usize)
+                    .cloned()
+                    .unwrap_or_default()
+                    .get((j + c2.1) as usize)
+                    .cloned()
+                    .unwrap_or_default();
 
-                    if (c1 == 'M' && c2 == 'S') || (c1 == 'S' && c2 == 'M') {
-                        continue;
-                    }
-
-                    bad = true;
+                if (c1 == b'M' && c2 == b'S') || (c1 == b'S' && c2 == b'M') {
+                    lines += 1;
                 }
+            }
 
-                if !bad {
-                    found += 1;
-                }
+            if lines >= 2 {
+                found += 1;
             }
         }
     }
