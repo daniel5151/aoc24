@@ -1,6 +1,3 @@
-// lints that are loud when speedrunning. removed before commit
-#![allow(unused_mut, clippy::let_and_return)]
-
 use crate::prelude::*;
 
 type Answer = usize;
@@ -13,14 +10,20 @@ fn munge_input(input: &str) -> DynResult<Input> {
 
     let rules = rules
         .split('\n')
-        .map(|x| x.split_once('|').unwrap())
-        .map(|(a, b)| (a.parse::<usize>().unwrap(), b.parse::<usize>().unwrap()))
-        .collect();
+        .map(|x| -> DynResult<_> {
+            let (a, b) = x.split_once('|').ok_or("missing |")?;
+            Ok((a.parse::<usize>()?, b.parse::<usize>()?))
+        })
+        .collect::<Result<_, _>>()?;
 
     let orders = orders
         .split('\n')
-        .map(|s| s.split(',').map(|x| x.parse::<usize>().unwrap()).collect())
-        .collect();
+        .map(|s| {
+            s.split(',')
+                .map(|x| x.parse::<usize>())
+                .collect::<Result<_, _>>()
+        })
+        .collect::<Result<_, _>>()?;
 
     Ok((rules, orders))
 }
@@ -28,29 +31,17 @@ fn munge_input(input: &str) -> DynResult<Input> {
 pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
     let (rules, orders) = munge_input(input)?;
 
-    let mut m = BTreeMap::<usize, BTreeSet<usize>>::new();
+    let mut before_to_after = BTreeMap::<usize, BTreeSet<usize>>::new();
     for (before, after) in rules {
-        m.entry(before).or_default().insert(after);
+        before_to_after.entry(after).or_default();
+        before_to_after.entry(before).or_default().insert(after);
     }
 
-    // brute force this thing
     let mut total = 0;
     'outer: for order in orders {
-        for i in 0..order.len() {
-            if i + 1 == order.len() {
-                break;
-            }
-
-            let pb = order[i];
-            let Some(rules) = m.get(&pb) else {
+        for [a, b] in order.array_windows() {
+            if !before_to_after.get(a).unwrap().contains(b) {
                 continue 'outer;
-            };
-
-            for j in (i + 1)..order.len() {
-                let pa = order[j];
-                if !rules.contains(&pa) {
-                    continue 'outer;
-                }
             }
         }
 
@@ -63,14 +54,11 @@ pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
 pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
     let (rules, orders) = munge_input(input)?;
 
-    let mut all = BTreeSet::new();
-
+    // not really the best graph data structure to use, but I don't really feel
+    // like pulling in petgraph, so this'll do.
     let mut before_to_after = BTreeMap::<usize, BTreeSet<usize>>::new();
     let mut after_to_before = BTreeMap::<usize, BTreeSet<usize>>::new();
     for (before, after) in rules {
-        all.insert(before);
-        all.insert(after);
-
         before_to_after.entry(after).or_default();
         before_to_after.entry(before).or_default().insert(after);
 
@@ -78,32 +66,29 @@ pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
         after_to_before.entry(after).or_default().insert(before);
     }
 
-    dbg!();
-    dbg_map!(&before_to_after);
-    dbg!();
-    dbg_map!(&after_to_before);
-
     let mut total = 0;
     for order in orders {
         let ignored = {
-            let mut s = all.clone();
+            let mut s = before_to_after.keys().copied().collect::<BTreeSet<_>>();
             for x in &order {
                 s.remove(x);
             }
             s
         };
 
-        let mut before_to_after: BTreeMap<_, BTreeSet<_>> = before_to_after
+        // restrict graph to just the pages in the current ordering
+        let before_to_after: BTreeMap<_, BTreeSet<_>> = before_to_after
             .clone()
             .into_iter()
             .map(|(x, s)| (x, s.difference(&ignored).copied().collect()))
             .collect();
-        let mut after_to_before: BTreeMap<_, BTreeSet<_>> = after_to_before
+        let after_to_before: BTreeMap<_, BTreeSet<_>> = after_to_before
             .clone()
             .into_iter()
             .map(|(x, s)| (x, s.difference(&ignored).copied().collect()))
             .collect();
 
+        // guaranteed to only have a single root, due to the nature of the problem
         let root = *order
             .iter()
             .find(|x| before_to_after.get(x).unwrap().is_empty())
@@ -112,6 +97,7 @@ pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
         // do toposort
         let mut out = Vec::new();
         let mut s = BTreeSet::from([root]);
+        let mut before_to_after = before_to_after;
         while let Some(n) = s.pop_first() {
             out.push(n);
             for m in after_to_before.get(&n).unwrap().clone() {
@@ -123,14 +109,13 @@ pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
             }
         }
 
+        // could have done a pre-scan instead, but ehh, I ain't optimizing for
+        // perf (not by a long-shot).
         out.reverse();
-
         if out == order {
             continue;
         }
 
-        dbg!(&root);
-        dbg!(&out);
         total += out[out.len() / 2];
     }
 
