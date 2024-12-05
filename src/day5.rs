@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use std::cmp::Ordering;
 
 type Answer = usize;
 
@@ -51,7 +52,44 @@ pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
     Ok(total)
 }
 
-pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
+pub fn q2(input: &str, args: &[&str]) -> DynResult<Answer> {
+    match args {
+        ["topo", ..] | [] => q2_topo(input),
+        ["cmp", ..] => q2_cmp(input),
+        _ => Err("bad args".into()),
+    }
+}
+
+fn q2_cmp(input: &str) -> DynResult<Answer> {
+    let (rules, orders) = munge_input(input)?;
+
+    let mut before_to_after = BTreeMap::<usize, BTreeSet<usize>>::new();
+    for (before, after) in rules {
+        before_to_after.entry(after).or_default();
+        before_to_after.entry(before).or_default().insert(after);
+    }
+
+    let mut total = 0;
+    for mut order in orders {
+        let orig = order.clone();
+
+        order.sort_by(|a, b| {
+            if before_to_after.get(a).unwrap().contains(b) {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        });
+
+        if orig != order {
+            total += order[order.len() / 2]
+        }
+    }
+
+    Ok(total)
+}
+
+fn q2_topo(input: &str) -> DynResult<Answer> {
     let (rules, orders) = munge_input(input)?;
 
     // not really the best graph data structure to use, but I don't really feel
