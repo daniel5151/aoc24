@@ -15,18 +15,18 @@ fn munge_input(input: &str) -> DynResult<Input> {
         .map(|s| -> DynResult<_> {
             let res = {
                 // parse
-                s
+                // s
+                todo!()
             };
             Ok(res)
         })
-        .collect::<Result<Vec<_>, _>>()?;
+        .collect::<Result<_, _>>()?;
 
-    todo!()
-    // Ok(input)
+    Ok(input)
 }
 
 pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
-    let input = munge_input(input)?;
+    let mut input = munge_input(input)?;
 
     let _ = input;
 
@@ -34,7 +34,7 @@ pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
 }
 
 pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
-    let input = munge_input(input)?;
+    let mut input = munge_input(input)?;
 
     let _ = input;
 
