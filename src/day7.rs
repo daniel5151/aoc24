@@ -7,28 +7,18 @@ type Answer = usize;
 
 type Input = Vec<(usize, Vec<usize>)>;
 fn munge_input(input: &str) -> DynResult<Input> {
-    let mut input = input.split('\n');
-
-    // let init = input.next().unwrap();
-
-    let input = input
+    input
+        .split('\n')
         .map(|s| -> DynResult<_> {
-            let res = {
-                // parse
-                let (a, list) = s.split_once(": ").unwrap();
-                let a = a.parse::<usize>()?;
-                (
-                    a,
-                    list.split(' ')
-                        .map(|x| x.parse::<usize>())
-                        .collect::<Result<Vec<_>, _>>()?,
-                )
-            };
-            Ok(res)
+            let (a, list) = s.split_once(": ").ok_or("missing ':'")?;
+            Ok((
+                a.parse::<usize>()?,
+                list.split(' ')
+                    .map(|x| x.parse::<usize>())
+                    .collect::<Result<Vec<_>, _>>()?,
+            ))
         })
-        .collect::<Result<Vec<_>, _>>()?;
-
-    Ok(input)
+        .collect::<Result<Vec<_>, _>>()
 }
 
 pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
@@ -46,11 +36,6 @@ pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
                 }
             }
 
-            // if true_ans == 13552740 {
-            //     dbg!(&true_ans);
-            //     dbg!(&ops);
-            // }
-
             let mut ans = if ops[0] == "+" {
                 nums[0] + nums[1]
             } else {
@@ -61,15 +46,7 @@ pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
             }
 
             if ans == true_ans {
-                if true_ans == 13552740 {
-                    dbg!(true_ans);
-                }
-                // dbg!(true_ans);
-                // dbg!(&nums);
-                // dbg!(&ops);
-
                 total += ans;
-                // dbg!(format!("{total} {ans}"));
                 continue 'outer;
             }
         }
@@ -81,9 +58,28 @@ pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
 pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
     let mut input = munge_input(input)?;
 
-    let _ = input;
+    let mut total = 0;
+    'outer: for (true_ans, nums) in input {
+        for mut ops_id in 0..3usize.pow((nums.len() - 1) as u32) {
+            let mut ans = nums[0];
+            for i in 0..(nums.len() - 1) {
+                match ops_id % 3 {
+                    0 => ans += nums[i + 1],
+                    1 => ans *= nums[i + 1],
+                    2 => ans = format!("{}{}", ans, nums[i + 1]).parse().unwrap(),
+                    _ => unreachable!(),
+                }
+                ops_id /= 3;
+            }
 
-    todo!()
+            if ans == true_ans {
+                total += ans;
+                continue 'outer;
+            }
+        }
+    }
+
+    Ok(total)
 }
 
 #[cfg(test)]
@@ -111,12 +107,12 @@ mod tests {
         assert_eq!(q(input.trim(), &[]).unwrap(), expected);
     }
 
-    // #[test]
-    // fn q2_e1() {
-    //     let input = EXAMPLE_1;
-    //     let expected = { 0 };
-    //     let q = q2;
+    #[test]
+    fn q2_e1() {
+        let input = EXAMPLE_1;
+        let expected = { 11387 };
+        let q = q2;
 
-    //     assert_eq!(q(input.trim(), &[]).unwrap(), expected);
-    // }
+        assert_eq!(q(input.trim(), &[]).unwrap(), expected);
+    }
 }
