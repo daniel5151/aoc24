@@ -1,6 +1,3 @@
-// lints that are loud when speedrunning. removed before commit
-#![allow(unused_mut, clippy::let_and_return)]
-
 use crate::prelude::*;
 
 type Answer = usize;
@@ -21,28 +18,29 @@ fn munge_input(input: &str) -> DynResult<Input> {
         .collect::<Result<Vec<_>, _>>()
 }
 
-pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
-    let mut input = munge_input(input)?;
+// this fits my input ¯\_(ツ)_/¯
+fn concat(a: usize, b: usize) -> usize {
+    match a {
+        _ if b < 10 => a * 10 + b,
+        _ if b < 100 => a * 100 + b,
+        _ if b < 1000 => a * 1000 + b,
+        _ => unreachable!(),
+    }
+}
 
+fn solve<const BASE: usize>(input: Input) -> Answer {
     let mut total = 0;
     'outer: for (true_ans, nums) in input {
-        for ops_bitmap in 0..(1 << (nums.len() - 1)) {
-            let mut ops = Vec::new();
-            for bit in 0..(nums.len() - 1) {
-                if ops_bitmap & (1 << bit) != 0 {
-                    ops.push("+");
-                } else {
-                    ops.push("*");
+        for mut ops_id in 0..BASE.pow((nums.len() - 1) as u32) {
+            let mut ans = nums[0];
+            for &n in nums.iter().skip(1) {
+                match ops_id % BASE {
+                    0 => ans += n,
+                    1 => ans *= n,
+                    2 => ans = concat(ans, n),
+                    _ => unreachable!(),
                 }
-            }
-
-            let mut ans = if ops[0] == "+" {
-                nums[0] + nums[1]
-            } else {
-                nums[0] * nums[1]
-            };
-            for (i, x) in nums.iter().enumerate().skip(2) {
-                ans = if ops[i - 1] == "+" { ans + x } else { ans * x }
+                ops_id /= BASE;
             }
 
             if ans == true_ans {
@@ -51,35 +49,17 @@ pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
             }
         }
     }
+    total
+}
 
-    Ok(total)
+pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
+    let input = munge_input(input)?;
+    Ok(solve::<2>(input))
 }
 
 pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
-    let mut input = munge_input(input)?;
-
-    let mut total = 0;
-    'outer: for (true_ans, nums) in input {
-        for mut ops_id in 0..3usize.pow((nums.len() - 1) as u32) {
-            let mut ans = nums[0];
-            for i in 0..(nums.len() - 1) {
-                match ops_id % 3 {
-                    0 => ans += nums[i + 1],
-                    1 => ans *= nums[i + 1],
-                    2 => ans = format!("{}{}", ans, nums[i + 1]).parse().unwrap(),
-                    _ => unreachable!(),
-                }
-                ops_id /= 3;
-            }
-
-            if ans == true_ans {
-                total += ans;
-                continue 'outer;
-            }
-        }
-    }
-
-    Ok(total)
+    let input = munge_input(input)?;
+    Ok(solve::<3>(input))
 }
 
 #[cfg(test)]
