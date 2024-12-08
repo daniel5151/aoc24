@@ -1,6 +1,3 @@
-// lints that are loud when speedrunning. removed before commit
-#![allow(unused_mut, clippy::let_and_return)]
-
 use crate::prelude::*;
 
 type Answer = usize;
@@ -11,39 +8,51 @@ fn munge_input(input: &str) -> DynResult<Input> {
     Ok(input)
 }
 
-pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
-    let mut input = munge_input(input)?;
+fn solve(input: &str, harmonics: bool) -> DynResult<Answer> {
+    let input = munge_input(input)?;
 
     let bound_y = input.len() as isize;
     let bound_x = input[0].len() as isize;
 
-    let mut antennas: BTreeMap<u8, Vec<(usize, usize)>> = BTreeMap::new();
+    let mut antennas: BTreeMap<u8, Vec<(isize, isize)>> = BTreeMap::new();
     for (y, row) in input.into_iter().enumerate() {
         for (x, cell) in row.into_iter().enumerate() {
             if cell != b'.' {
-                antennas.entry(cell).or_default().push((x, y));
+                antennas
+                    .entry(cell)
+                    .or_default()
+                    .push((x as isize, y as isize));
             }
         }
     }
 
-    let mut antis = BTreeSet::<(usize, usize)>::new();
+    let mut antis = BTreeSet::<(isize, isize)>::new();
     for (_kind, pos) in antennas {
         for (i, (x1, y1)) in pos.iter().copied().enumerate() {
             for (x2, y2) in pos.iter().copied().skip(i + 1) {
-                let dx = x1 as isize - x2 as isize;
-                let dy = y1 as isize - y2 as isize;
+                let dx = x1 - x2;
+                let dy = y1 - y2;
 
-                let a1x = x1 as isize + dx;
-                let a2x = x2 as isize - dx;
-                let a1y = y1 as isize + dy;
-                let a2y = y2 as isize - dy;
+                for (dir, (mut ax, mut ay)) in [(1, (x1, y1)), (-1, (x2, y2))] {
+                    let mut i = 0;
+                    while (0..bound_x).contains(&ax) && (0..bound_y).contains(&ay) {
+                        let pos = (ax, ay);
 
-                if (0..bound_x).contains(&a1x) && (0..bound_y).contains(&a1y) {
-                    antis.insert((a1x as usize, a1y as usize));
-                }
+                        i += 1;
+                        ax += dx * dir;
+                        ay += dy * dir;
 
-                if (0..bound_x).contains(&a2x) && (0..bound_y).contains(&a2y) {
-                    antis.insert((a2x as usize, a2y as usize));
+                        if !harmonics {
+                            match i {
+                                1 => continue,
+                                2 => {}
+                                3 => break,
+                                _ => unreachable!(),
+                            }
+                        }
+
+                        antis.insert(pos);
+                    }
                 }
             }
         }
@@ -52,50 +61,12 @@ pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
     Ok(antis.len())
 }
 
+pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
+    solve(input, false)
+}
+
 pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
-    let mut input = munge_input(input)?;
-
-    let bound_y = input.len() as isize;
-    let bound_x = input[0].len() as isize;
-
-    let mut antennas: BTreeMap<u8, Vec<(usize, usize)>> = BTreeMap::new();
-    for (y, row) in input.into_iter().enumerate() {
-        for (x, cell) in row.into_iter().enumerate() {
-            if cell != b'.' {
-                antennas.entry(cell).or_default().push((x, y));
-            }
-        }
-    }
-
-    let mut antis = BTreeSet::<(usize, usize)>::new();
-    for (_kind, pos) in antennas {
-        for (i, (x1, y1)) in pos.iter().copied().enumerate() {
-            for (x2, y2) in pos.iter().copied().skip(i + 1) {
-                let dx = x1 as isize - x2 as isize;
-                let dy = y1 as isize - y2 as isize;
-
-                // backwards
-                let mut ax = x1 as isize;
-                let mut ay = y1 as isize;
-                while (0..bound_x).contains(&ax) && (0..bound_y).contains(&ay) {
-                    antis.insert((ax as usize, ay as usize));
-                    ax -= dx;
-                    ay -= dy;
-                }
-
-                // forwards
-                let mut ax = x2 as isize;
-                let mut ay = y2 as isize;
-                while (0..bound_x).contains(&ax) && (0..bound_y).contains(&ay) {
-                    antis.insert((ax as usize, ay as usize));
-                    ax += dx;
-                    ay += dy;
-                }
-            }
-        }
-    }
-
-    Ok(antis.len())
+    solve(input, true)
 }
 
 #[cfg(test)]
