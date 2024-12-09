@@ -96,9 +96,10 @@ pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
 
     // vec of (file_id, file_idx, len)
     let mut final_disk = Vec::<(usize, usize, usize)>::new();
-    'outer: for (file_id, (file_idx, file_len)) in file_id_to_idx_len.into_iter().enumerate().rev()
-    {
-        // find smallest gap left of the file
+    for (file_id, (file_idx, file_len)) in file_id_to_idx_len.into_iter().enumerate().rev() {
+        let mut candidates = Vec::new();
+
+        // figure out the best gaps in each len class for this file
         for (gap_len, gaps) in gap_idx_by_size.iter_mut().enumerate().skip(file_len) {
             let Some(&Reverse(candidate_idx)) = gaps.peek() else {
                 continue;
@@ -108,8 +109,14 @@ pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
                 continue;
             }
 
-            // cool, this is the best gap
-            gaps.pop();
+            // cool, this is a viable gap
+            candidates.push((candidate_idx, gap_len));
+        }
+
+        // find _left-most_ gap where we can put the file (not strictly the smallest!)
+        candidates.sort();
+        if let Some(&(candidate_idx, gap_len)) = candidates.first() {
+            gap_idx_by_size[gap_len].pop();
             let new_gap_len = gap_len - file_len;
             if new_gap_len != 0 {
                 let new_gap_idx = candidate_idx + file_len;
@@ -117,12 +124,10 @@ pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
             }
 
             final_disk.push((file_id, candidate_idx, file_len));
-
-            continue 'outer;
+        } else {
+            //  file stays put
+            final_disk.push((file_id, file_idx, file_len));
         }
-
-        // otherwise, file stays put
-        final_disk.push((file_id, file_idx, file_len));
     }
 
     debug_disk(&final_disk);
