@@ -57,30 +57,80 @@ pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
 pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
     let mut input = munge_input(input)?;
 
-    // maintain a min-heap of gaps, ordered by length, with (len, gap-idx)
-    let mut gaps = BinaryHeap::<Reverse<(usize, usize)>>::new();
-    // maintain a vec of files, where pos is the file ID, and entries are simply
-    // (file-idx)
-    let mut files = Vec::<usize>::new();
+    let mut gap_idx_by_size: [BinaryHeap<Reverse<usize>>; 10] = [const { BinaryHeap::new() }; 10];
+    let mut file_id_to_idx_len = Vec::<(usize, usize)>::new();
 
-    for (idx, n) in input.into_iter().enumerate() {
-        if idx % 2 == 0 {
-            files.push(idx);
-        } else {
-            gaps.push(Reverse((n as usize, idx)));
+    let mut idx = 0;
+    for (kind, n) in input.into_iter().enumerate().map(|(i, b)| (i % 2, b)) {
+        if n == 0 {
+            // files can't be zero-len
+            if kind == 0 {
+                panic!()
+            }
+
+            continue;
         }
+
+        if kind == 0 {
+            file_id_to_idx_len.push((idx, n as usize));
+        } else {
+            gap_idx_by_size[n as usize].push(Reverse(idx));
+        }
+
+        idx += n as usize;
+    }
+
+    fn debug_disk(disk: &[(usize, usize, usize)]) {
+        let mut viz = Vec::new();
+        for &(file_id, file_idx, len) in disk {
+            if file_idx + len > viz.len() {
+                viz.resize(file_idx + len, 1000);
+            }
+            for i in file_idx..file_idx + len {
+                viz[i] = file_id;
+            }
+        }
+
+        println!("{viz:?}");
     }
 
     // vec of (file_id, file_idx, len)
     let mut final_disk = Vec::<(usize, usize, usize)>::new();
-    for (file_id, file_idx) in files.into_iter().enumerate().rev() {
-        //
+    'outer: for (file_id, (file_idx, file_len)) in file_id_to_idx_len.into_iter().enumerate().rev()
+    {
+        // find smallest gap left of the file
+        for (gap_len, gaps) in gap_idx_by_size.iter_mut().enumerate().skip(file_len) {
+            let Some(&Reverse(candidate_idx)) = gaps.peek() else {
+                continue;
+            };
+
+            if candidate_idx > file_idx {
+                continue;
+            }
+
+            // cool, this is the best gap
+            gaps.pop();
+            let new_gap_len = gap_len - file_len;
+            if new_gap_len != 0 {
+                let new_gap_idx = candidate_idx + file_len;
+                gap_idx_by_size[new_gap_len].push(Reverse(new_gap_idx));
+            }
+
+            final_disk.push((file_id, candidate_idx, file_len));
+
+            continue 'outer;
+        }
+
+        // otherwise, file stays put
+        final_disk.push((file_id, file_idx, file_len));
     }
 
+    debug_disk(&final_disk);
+
     let mut sum = 0;
-    for (file_id, file_idx, len) in final_disk {
-        for i in file_idx..(file_id + len) {
-            sum += file_id * i;
+    for (id, idx, len) in final_disk {
+        for i in idx..(idx + len) {
+            sum += id * i;
         }
     }
 
