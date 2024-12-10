@@ -86,8 +86,8 @@ pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
             if file_idx + len > viz.len() {
                 viz.resize(file_idx + len, 1000);
             }
-            for i in file_idx..file_idx + len {
-                viz[i] = file_id;
+            for n in viz.iter_mut().skip(file_idx).take(len) {
+                *n = file_id;
             }
         }
 
