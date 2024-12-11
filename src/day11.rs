@@ -14,59 +14,43 @@ fn munge_input(input: &str) -> DynResult<Input> {
     Ok(input)
 }
 
-pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
+fn solve(input: &str, iters: usize) -> DynResult<Answer> {
     let mut input = munge_input(input)?;
 
-    for _ in 0..25 {
-        for stone in std::mem::take(&mut input) {
+    let mut counts = BTreeMap::<usize, usize>::new();
+    for init in input {
+        *counts.entry(init).or_default() += 1;
+    }
+
+    for _ in 0..iters {
+        for (stone, count) in std::mem::take(&mut counts) {
             if stone == 0 {
-                input.push(1);
+                *counts.entry(1).or_default() += count;
             } else {
                 let digs = stone.ilog10() + 1;
                 if digs % 2 == 0 {
                     let split = 10usize.pow(digs / 2);
                     let top = stone / split;
                     let bottom = stone - (top * split);
-                    input.push(top);
-                    input.push(bottom);
+
+                    *counts.entry(top).or_default() += count;
+                    *counts.entry(bottom).or_default() += count;
                 } else {
-                    input.push(stone * 2024);
+                    *counts.entry(stone * 2024).or_default() += count;
                 }
             }
         }
     }
 
-    Ok(input.len())
+    Ok(counts.values().sum())
+}
+
+pub fn q1(input: &str, _args: &[&str]) -> DynResult<Answer> {
+    solve(input, 25)
 }
 
 pub fn q2(input: &str, _args: &[&str]) -> DynResult<Answer> {
-    let mut input = munge_input(input)?;
-
-    // ayy lmao can you imagine? but nahh, I know, the solution requires
-    // identifying the pattern to efficiently compute this.
-    //
-    // alas - I've gotta pack for vacation, so this might be the end of the line
-    // this year...
-    for _ in 0..75 {
-        for stone in std::mem::take(&mut input) {
-            if stone == 0 {
-                input.push(1);
-            } else {
-                let digs = stone.ilog10() + 1;
-                if digs % 2 == 0 {
-                    let split = 10usize.pow(digs / 2);
-                    let top = stone / split;
-                    let bottom = stone - (top * split);
-                    input.push(top);
-                    input.push(bottom);
-                } else {
-                    input.push(stone * 2024);
-                }
-            }
-        }
-    }
-
-    Ok(input.len())
+    solve(input, 75)
 }
 
 #[cfg(test)]
@@ -85,13 +69,4 @@ mod tests {
 
         assert_eq!(q(input.trim(), &[]).unwrap(), expected);
     }
-
-    // #[test]
-    // fn q2_e1() {
-    //     let input = EXAMPLE_1;
-    //     let expected = { 0 };
-    //     let q = q2;
-
-    //     assert_eq!(q(input.trim(), &[]).unwrap(), expected);
-    // }
 }
