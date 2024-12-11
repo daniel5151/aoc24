@@ -8,6 +8,10 @@ previous years.
 Will I actually stick with it this year? Unclear! Especially since I'm going on
 vacation on Dec 11th.
 
+**Update:** Its December 10th, and look at that - I actually did 11 days of
+questions! But now its time for vacation, and I won't have a laptop, so it seems
+Day 11 is the end of the road for me this year...
+
 ## Running
 
 (Assuming you've put the desired day's input into the `inputs` dir, either manually, or via `run.sh`)

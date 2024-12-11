@@ -1,6 +1,3 @@
-// lints that are loud when speedrunning. removed before commit
-#![allow(unused_mut, clippy::let_and_return)]
-
 use crate::prelude::*;
 
 type Answer = usize;
@@ -15,7 +12,7 @@ fn munge_input(input: &str) -> DynResult<Input> {
 }
 
 fn solve(input: &str, iters: usize) -> DynResult<Answer> {
-    let mut input = munge_input(input)?;
+    let input = munge_input(input)?;
 
     let mut counts = BTreeMap::<usize, usize>::new();
     for init in input {
@@ -32,7 +29,6 @@ fn solve(input: &str, iters: usize) -> DynResult<Answer> {
                     let split = 10usize.pow(digs / 2);
                     let top = stone / split;
                     let bottom = stone - (top * split);
-
                     *counts.entry(top).or_default() += count;
                     *counts.entry(bottom).or_default() += count;
                 } else {
